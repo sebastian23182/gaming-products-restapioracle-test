@@ -5,13 +5,16 @@ OracleDB.poolMin = 10000;
 OracleDB.poolMax = 10000;
 OracleDB.autoCommit = true;
 
-const pool = await OracleDB.getConnection({
-  user: "system",
-  password: "123",
-  connectString: "localhost/xe",
-});
+const connect = async () => {
+    const pool = await OracleDB.getConnection({
+      user: "system",
+      password: "123",
+      connectString: "localhost/xe",
+    });
+    return pool;
+}
 
-export { pool };
+export { connect };
 
 
 

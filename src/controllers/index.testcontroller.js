@@ -1,7 +1,8 @@
-import { pool } from "../db.js";
+import { connect } from "../testdb.js";
 import { SignJWT, jwtVerify } from "jose";
 
 export const loginAuth = async (req, res) => {
+    const pool = await connect();
     const { EMAIL, PASSWORD } = req.body;
     if(!EMAIL || !PASSWORD) return res.sendStatus(400);
     try{
@@ -18,6 +19,7 @@ export const loginAuth = async (req, res) => {
         .setExpirationTime("1h") //Token expiration time
         .setSubject(GUID)
         .sign(encoder.encode("qh4aKms3PXoMVQaSDJE2z6oQ24^4v^&3o"));
+        
         return res.send({ jwt });
     } catch (error) {
         return res.sendStatus(401);
@@ -39,7 +41,8 @@ export const loginToken = async (req, res) => {
     }
 }
 
-export const getProducts = async (req, res) => {  
+export const getProducts = async (req, res) => {
+    const pool = await connect();
     try {
         const result = await pool.execute(
             "SELECT PRO.ID_PRODUCTO, PRO.NOMBRE_PRODUCTO, CAT.NOMBRE_CATEGORIA, PRO.STOCK, EP.NOMBRE_ESTADO_PRODUCTO, PRO.PRECIO FROM PRODUCTO PRO INNER JOIN ESTADO_PRODUCTO EP ON EP.ID_ESTADO_PRODUCTO = PRO.ID_ESTADO_PRODUCTO INNER JOIN CATEGORIA CAT ON CAT.ID_CATEGORIA = PRO.ID_CATEGORIA ORDER BY ID_PRODUCTO");
@@ -50,6 +53,7 @@ export const getProducts = async (req, res) => {
 }
 
 export const getProductData = async (req, res) => {
+    const pool = await connect();
     try {
         const result = await pool.execute("SELECT * FROM PRODUCTO WHERE ID_PRODUCTO = :ID_PRODUCTO", [req.params.ID_PRODUCTO])
         if(!!result.rows[0]){
@@ -69,8 +73,10 @@ export const getProductData = async (req, res) => {
 }
 
 export const updateProduct = async (req, res) => {
+    const pool = await connect();
     const { ID_PRODUCTO, ID_ESTADO_PRODUCTO, ID_CATEGORIA, NOMBRE_PRODUCTO, STOCK, PRECIO } = req.body;
     if(isNaN(ID_ESTADO_PRODUCTO) || isNaN(ID_CATEGORIA) || !NOMBRE_PRODUCTO || !STOCK || !PRECIO){ 
+        
         return res.sendStatus(400);
     }
     if(ID_ESTADO_PRODUCTO >= 0 && ID_ESTADO_PRODUCTO <= 1 && ID_CATEGORIA >= 0 && ID_CATEGORIA <= 9 && NOMBRE_PRODUCTO.length > 0 && NOMBRE_PRODUCTO.length <= 150 && STOCK > 0 && STOCK <= 9999999999999 && PRECIO > 0 && PRECIO <= 9999999999999){
@@ -79,7 +85,7 @@ export const updateProduct = async (req, res) => {
         const CATEGORIA = CATEGORIAS[Number(ID_CATEGORIA)];
         try {
             if(!req.file){
-                const result = await pool.execute("UPDATE PRODUCTO SET ID_ESTADO_PRODUCTO = :ID_ESTADO_PRODUCTO, ID_CATEGORIA = :ID_CATEGORIA, NOMBRE_PRODUCTO = :NOMBRE_PRODUCTO, STOCK = :STOCK, PRECIO = :PRECIO WHERE ID_PRODUCTO = :ID_PRODUCTO", [ID_ESTADO_PRODUCTO, ID_CATEGORIA, NOMBRE_PRODUCTO, STOCK, PRECIO, ID_PRODUCTO] )
+                const result = await pool.execute("UPDATE PRODUCTO SET ID_ESTADO_PRODUCTO = :ID_ESTADO_PRODUCTO, ID_CATEGORIA = :ID_CATEGORIA, NOMBRE_PRODUCTO = :NOMBRE_PRODUCTO, STOCK = :STOCK, PRECIO = :PRECIO WHERE ID_PRODUCTO = :ID_PRODUCTO", [ID_ESTADO_PRODUCTO, ID_CATEGORIA, NOMBRE_PRODUCTO, STOCK, PRECIO, ID_PRODUCTO], {autoCommit: true})
                 if(result.rowsAffected === 0){
                     return res.sendStatus(400);
                 }else{
@@ -87,15 +93,14 @@ export const updateProduct = async (req, res) => {
                 }
             }else{
                 const IMAGEN = req.file?.buffer;
-                const result = await pool.execute("UPDATE PRODUCTO SET ID_ESTADO_PRODUCTO = :ID_ESTADO_PRODUCTO, ID_CATEGORIA = :ID_CATEGORIA, NOMBRE_PRODUCTO = :NOMBRE_PRODUCTO, STOCK = :STOCK, PRECIO = :PRECIO, IMAGEN = :IMAGEN WHERE ID_PRODUCTO = :ID_PRODUCTO", [ID_ESTADO_PRODUCTO, ID_CATEGORIA, NOMBRE_PRODUCTO, STOCK, PRECIO, IMAGEN, ID_PRODUCTO] )
-                
+                const result = await pool.execute("UPDATE PRODUCTO SET ID_ESTADO_PRODUCTO = :ID_ESTADO_PRODUCTO, ID_CATEGORIA = :ID_CATEGORIA, NOMBRE_PRODUCTO = :NOMBRE_PRODUCTO, STOCK = :STOCK, PRECIO = :PRECIO, IMAGEN = :IMAGEN WHERE ID_PRODUCTO = :ID_PRODUCTO", [ID_ESTADO_PRODUCTO, ID_CATEGORIA, NOMBRE_PRODUCTO, STOCK, PRECIO, IMAGEN, ID_PRODUCTO], {autoCommit: true})      
                 if(result.rowsAffected === 0){
                     return res.sendStatus(400);
                 }else{
                     return res.status(200).send({ ID_PRODUCTO: Number(ID_PRODUCTO) , ID_ESTADO_PRODUCTO: Number(ID_ESTADO_PRODUCTO), ESTADO_PRODUCTO: ESTADO_PRODUCTO, ID_CATEGORIA: Number(ID_CATEGORIA), CATEGORIA: CATEGORIA, NOMBRE_PRODUCTO: NOMBRE_PRODUCTO, STOCK: STOCK, PRECIO: PRECIO })
                 }
             }
-        } catch (error) {  
+        } catch (error) { 
             return res.sendStatus(400);
         }
     }else{
@@ -104,6 +109,7 @@ export const updateProduct = async (req, res) => {
 }
 
 export const getNewProductOptions = async (req, res) => {
+    const pool = await connect();
     const produtcStatus = (await pool.execute("SELECT ID_ESTADO_PRODUCTO, NOMBRE_ESTADO_PRODUCTO FROM ESTADO_PRODUCTO")).rows;
     const category = (await pool.execute("SELECT ID_CATEGORIA, NOMBRE_CATEGORIA FROM CATEGORIA")).rows;
     const combinedArray = [];
@@ -112,6 +118,7 @@ export const getNewProductOptions = async (req, res) => {
 }
 
 export const postProduct = async (req, res) => {
+    const pool = await connect();
     const { ID_ESTADO_PRODUCTO, ID_CATEGORIA, NOMBRE_PRODUCTO, STOCK, PRECIO } = req.body;
     if(isNaN(ID_ESTADO_PRODUCTO) || isNaN(ID_CATEGORIA) || !NOMBRE_PRODUCTO || !STOCK || !PRECIO){ 
         return res.sendStatus(400);
@@ -139,6 +146,7 @@ export const postProduct = async (req, res) => {
 }
 
 export const deleteProduct = async (req, res) => {
+    const pool = await connect();
     const { ID_PRODUCTO } = req.body;
     if(!ID_PRODUCTO){ 
         return res.sendStatus(400);
@@ -148,6 +156,7 @@ export const deleteProduct = async (req, res) => {
 }
 
 export const deleteMultipleProducts = async (req, res) => {
+    const pool = await connect();
     const { PRODUCTOS } = req.body;
     console.log(PRODUCTOS);
     let sql = `DELETE FROM PRODUCTO WHERE ID_PRODUCTO IN (`;

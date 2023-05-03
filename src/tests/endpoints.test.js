@@ -1,10 +1,12 @@
-import { app, server } from "../index";
+import { testapp, server } from "../testindex";
 import supertest from "supertest";
-import { upload } from "../routes/index.routes";
+import { upload } from "../routes/index.testroutes";
 
-const api = supertest(app)
+const api = supertest(testapp)
 
-/* Tests should be done without chaging the default values of the SQL script, otherwise they will fail  */
+/* Tests should be done without chaging the default values of the SQL script, otherwise they will fail  
+   Make sure ports 3000, 3001 and 3002 aren't being used
+*/
 
 describe("GET /products", () => {
     test("getting the table of products", async () => {
